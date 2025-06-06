@@ -124,8 +124,9 @@ export class Setup extends Command {
       {
         message: `Enter your Acquia Site Factory Key (from site factory user API tab):`,
         name: 'ACQUIA_ACSF_KEY',
-        type: 'input',
+        type: 'password',
         validate: Boolean,
+        mask: '*',
       },
       {
         message: 'Enter your ACQUIA SIte Factory USERNAME (ASURITE email):',
@@ -145,8 +146,9 @@ export class Setup extends Command {
       {
         message: 'Enter your ACQUIA_API_SECRET (from Acquia Cloud Platform):',
         name: 'ACQUIA_API_SECRET',
-        type: 'input',
+        type: 'password',
         validate: Boolean,
+        mask: '*',
       },
       {
         message: 'Enter your ACQUIA_FACTORY_URL (site factory URL):',
