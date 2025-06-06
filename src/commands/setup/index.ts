@@ -13,7 +13,6 @@ import {fileURLToPath} from 'node:url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// Application constants
 const CONSTANTS = {
   DEFAULT_ACQUIA_FACTORY_URL: 'https://www.asufactory1.acsitefactory.com',
   DEFAULT_ORGANIZATION_UUID: '8e1fbfbf-e743-48ec-b9b8-3048964ef3aa',
@@ -40,13 +39,11 @@ export default class Setup extends Command {
     COMPLETION: chalk.bgGreenBright.bold
   };
 
-  // Checks if the user has an SSH key
   private hasExistingSSHKey(): boolean {
     const sshPath = path.join(os.homedir(), '.ssh')
     return fs.existsSync(path.join(sshPath, 'id_rsa.pub')) || fs.existsSync(path.join(sshPath, 'id_ed25519.pub'))
   }
 
-  // Gets the content of the public SSH key
   private getPublicSSHKey(): string | null {
     const sshPath = path.join(os.homedir(), '.ssh')
     let pubKeyPath = ''
@@ -72,7 +69,6 @@ export default class Setup extends Command {
         fs.mkdirSync(sshPath, {mode: 0o700})
       }
 
-      // Generate a new ED25519 key (more modern than RSA)
       const email = execSync('git config --get user.email').toString().trim() || 'user@example.com'
       execSync(`ssh-keygen -t ed25519 -C "${email}" -f "${path.join(sshPath, 'id_ed25519')}" -N ""`, {stdio: 'inherit'})
 
@@ -82,7 +78,6 @@ export default class Setup extends Command {
     }
   }
 
-  // Opens a URL in the default browser
   private openBrowser(url: string): void {
     let command
     switch (process.platform) {
@@ -116,7 +111,6 @@ export default class Setup extends Command {
         this.log(chalk.yellow('Optional Acquia Site Factory screenshot image not found, skipping.'))
       }
     } catch (error) {
-      // Gracefully handle errors (e.g., terminal doesn't support images)
       this.log(
         chalk.yellow(
           'Could not display Acquia SIte factory screenshot image. Your terminal might not support it or the image is missing.',
@@ -208,7 +202,6 @@ export default class Setup extends Command {
     this.log(chalk.greenBright('Updated ~/.ddev/global_config.yaml with your Acquia credentials.'))
 
     /*---- SSH key setup section ----*/
-    // TODO: 
     this.log(chalk.bgCyanBright.bold.white('\n🔑 SSH Key Setup for Acquia Services 🔑'))
 
     // Check if user has an existing SSH key
