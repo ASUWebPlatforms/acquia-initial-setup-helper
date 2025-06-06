@@ -22,7 +22,7 @@ const CONSTANTS = {
   REPO_NAME: 'asufactory1',
 }
 
-export default class Setup extends Command {
+export class Setup extends Command {
   static description = 'Guide the user through Acquia CLI and Code Studio setup.'
   
   // Class-level constants
