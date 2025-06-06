@@ -12,8 +12,33 @@ import {spawn} from 'node:child_process'
 import {fileURLToPath} from 'node:url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+
+// Application constants
+const CONSTANTS = {
+  DEFAULT_ACQUIA_FACTORY_URL: 'https://www.asufactory1.acsitefactory.com',
+  DEFAULT_ORGANIZATION_UUID: '8e1fbfbf-e743-48ec-b9b8-3048964ef3aa',
+  GIT_REPOSITORY_URL: 'git@gitcode.acquia.com:ArizonaBoardofRegentsSiteFactoryACSFSites/asufactory1.git',
+  ACQUIA_CODE_STUDIO_SSH_URL: 'https://code.acquia.com/-/user_settings/ssh_keys',
+  ACQUIA_CLOUD_SSH_URL: 'https://cloud.acquia.com/a/profile/ssh-keys',
+  REPO_NAME: 'asufactory1',
+}
+
 export default class Setup extends Command {
   static description = 'Guide the user through Acquia CLI and Code Studio setup.'
+  
+  // Class-level constants
+  static readonly SCREENSHOT_PATH = {
+    ACQUIA_SF_API: (dirname: string) => path.join(dirname, '..', '..', '..', 'assets', 'acsf_example.png'),
+    ACQUIA_CLOUD_API: (dirname: string) => path.join(dirname, '..', '..', '..', 'assets', 'acquia_api_example.png')
+  };
+  
+  static readonly HEADING_STYLES = {
+    WELCOME: chalk.bgMagentaBright.bold.white,
+    SSH_SETUP: chalk.bgCyanBright.bold.white,
+    REPO_SETUP: chalk.bgYellowBright.bold.black,
+    DEV_ENV_SETUP: chalk.bgCyanBright.bold.white,
+    COMPLETION: chalk.bgGreenBright.bold
+  };
 
   // Checks if the user has an SSH key
   private hasExistingSSHKey(): boolean {
@@ -80,17 +105,10 @@ export default class Setup extends Command {
   }
 
   async run(): Promise<void> {
-    this.log(chalk.bgMagentaBright.bold.white('Welcome to the Acquia Setup Helper! 🎉'))
-    const ACQUIA_SF_API_SCREENSHOT: string = path.join(__dirname, '..', '..', '..', 'assets', 'acsf_example.png')
-    const ACQUIA_CLOUD_API_SCREENSHOT: string = path.join(
-      __dirname,
-      '..',
-      '..',
-      '..',
-      'assets',
-      'acquia_api_example.png',
-    )
-    const DEFAULT_AH_ORGANIZATION_UUID = '8e1fbfbf-e743-48ec-b9b8-3048964ef3aa'
+    this.log(Setup.HEADING_STYLES.WELCOME('Welcome to the Acquia Setup Helper! 🎉'))
+    const ACQUIA_SF_API_SCREENSHOT: string = Setup.SCREENSHOT_PATH.ACQUIA_SF_API(__dirname);
+    const ACQUIA_CLOUD_API_SCREENSHOT: string = Setup.SCREENSHOT_PATH.ACQUIA_CLOUD_API(__dirname);
+    const DEFAULT_AH_ORGANIZATION_UUID = CONSTANTS.DEFAULT_ORGANIZATION_UUID;
     try {
       if (fs.existsSync(ACQUIA_SF_API_SCREENSHOT)) {
         this.log(await terminalImage.file(ACQUIA_SF_API_SCREENSHOT, {height: '50%', width: '50%'})) // Example: constrain height to 10 lines
@@ -141,19 +159,20 @@ export default class Setup extends Command {
         name: 'ACQUIA_FACTORY_URL',
         type: 'input',
         validate: Boolean,
-        default: 'https://www.asufactory1.acsitefactory.com',
+        default: CONSTANTS.DEFAULT_ACQUIA_FACTORY_URL,
       },
       {
         message: 'AH_ORGANIZATION_UUID set to 8e1fbfbf-e743-48ec-b9b8-3048964ef3aa. Continue?',
         name: 'AH_ORGANIZATION_UUID',
         type: 'confirm',
       },
-      {
-        message:
-          'If you are in the directory of where youw ant to pull in a site, would you like to list all the aliases?',
-        name: 'LIST_ORGANIZATIONS',
-        type: 'confirm',
-      },
+      // TODO: Add a section to list sites you have access to. Might be added after the git pull section?
+      // {
+      //   message:
+      //     'If you are in the directory of where youw ant to pull in a site, would you like to list all the aliases?',
+      //   name: 'LIST_ORGANIZATIONS',
+      //   type: 'confirm',
+      // },
     ])
 
     // Path to global_config.yaml
@@ -189,6 +208,7 @@ export default class Setup extends Command {
     this.log(chalk.greenBright('Updated ~/.ddev/global_config.yaml with your Acquia credentials.'))
 
     /*---- SSH key setup section ----*/
+    // TODO: 
     this.log(chalk.bgCyanBright.bold.white('\n🔑 SSH Key Setup for Acquia Services 🔑'))
 
     // Check if user has an existing SSH key
@@ -230,7 +250,7 @@ export default class Setup extends Command {
 
         if (openAcquiaCodeStudio) {
           this.log(chalk.cyan('Opening Acquia Code Studio SSH key management page...'))
-          this.openBrowser('https://code.acquia.com/-/user_settings/ssh_keys')
+          this.openBrowser(CONSTANTS.ACQUIA_CODE_STUDIO_SSH_URL)
         }
 
         const {openAcquiaCloud} = await inquirer.prompt({
@@ -242,7 +262,7 @@ export default class Setup extends Command {
 
         if (openAcquiaCloud) {
           this.log(chalk.cyan('Opening Acquia Cloud SSH key management page...'))
-          this.openBrowser('https://cloud.acquia.com/a/profile/ssh-keys')
+          this.openBrowser(CONSTANTS.ACQUIA_CLOUD_SSH_URL)
         }
       }
     }
@@ -261,31 +281,23 @@ export default class Setup extends Command {
     
     let repoPath = ''
     if (cloneRepo) {
+      // Get current directory
+      const currentDir = process.cwd()
+      
       // Ask for the directory to clone into
       const {cloneDir} = await inquirer.prompt({
-        default: path.join(os.homedir(), 'Projects', 'asufactory1'),
-        message: 'Where would you like to clone the repository?',
+        default: currentDir,
+        message: 'Where would you like to clone the repository? (current location: ' + currentDir + ')',
         name: 'cloneDir',
         type: 'input',
         validate: (input) => Boolean(input) || 'Please provide a valid directory path',
       })
       
-      // Ensure the parent directory exists
-      const parentDir = path.dirname(cloneDir)
-      if (!fs.existsSync(parentDir)) {
-        try {
-          fs.mkdirSync(parentDir, { recursive: true })
-        } catch (error) {
-          this.log(chalk.redBright(`Failed to create directory ${parentDir}: ${error}`))
-          return
-        }
-      }
-      
       // Clone the repository
       this.log(chalk.cyan(`Cloning repository to ${cloneDir}...`))
       const cloneResult = spawnSync(
         'git', 
-        ['clone', 'git@code.acquia.com:ArizonaBoardofRegentsSiteFactoryACSFSites/asufactory1.git', cloneDir], 
+        ['clone', CONSTANTS.GIT_REPOSITORY_URL, cloneDir + '/' + CONSTANTS.REPO_NAME], 
         { stdio: 'inherit' }
       )
       
