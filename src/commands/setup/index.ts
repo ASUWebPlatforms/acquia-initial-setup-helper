@@ -39,64 +39,156 @@ export class Setup extends Command {
     COMPLETION: chalk.bgGreenBright.bold
   };
 
-  private hasExistingSSHKey(): boolean {
+  private getAllSSHKeys(): Array<{name: string, path: string, content: string}> {
     const sshPath = path.join(os.homedir(), '.ssh')
-    return fs.existsSync(path.join(sshPath, 'id_rsa.pub')) || fs.existsSync(path.join(sshPath, 'id_ed25519.pub'))
+    const sshKeys: Array<{name: string, path: string, content: string}> = []
+
+    if (!fs.existsSync(sshPath)) {
+      return sshKeys
+    }
+
+    try {
+      const files = fs.readdirSync(sshPath)
+      const publicKeyFiles = files.filter(file => file.endsWith('.pub'))
+
+      for (const file of publicKeyFiles) {
+        const fullPath = path.join(sshPath, file)
+        try {
+          const content = fs.readFileSync(fullPath, 'utf8').trim()
+          sshKeys.push({
+            name: file,
+            path: fullPath,
+            content: content
+          })
+        } catch (error) {
+          // Skip files that can't be read
+          continue
+        }
+      }
+    } catch (error) {
+      // If we can't read the .ssh directory, return empty array
+      return sshKeys
+    }
+
+    return sshKeys
+  }
+
+  private hasExistingSSHKey(): boolean {
+    return this.getAllSSHKeys().length > 0
   }
 
   private getPublicSSHKey(): string | null {
-    const sshPath = path.join(os.homedir(), '.ssh')
-    let pubKeyPath = ''
-
-    if (fs.existsSync(path.join(sshPath, 'id_ed25519.pub'))) {
-      pubKeyPath = path.join(sshPath, 'id_ed25519.pub')
-    } else if (fs.existsSync(path.join(sshPath, 'id_rsa.pub'))) {
-      pubKeyPath = path.join(sshPath, 'id_rsa.pub')
-    } else {
+    const sshKeys = this.getAllSSHKeys()
+    if (sshKeys.length === 0) {
       return null
     }
 
-    return fs.readFileSync(pubKeyPath, 'utf8').trim()
+    // Return the first key found (maintaining backwards compatibility)
+    return sshKeys[0].content
   }
 
   // Generates a new SSH key
   private generateSSHKey(): boolean {
     try {
+      // Check if ssh-keygen is available
+      if (!this.checkCommandAvailability('ssh-keygen')) {
+        this.log(chalk.redBright('❌ ssh-keygen command not found. Please install OpenSSH or Git for Windows.'))
+        return false
+      }
+
       const sshPath = path.join(os.homedir(), '.ssh')
 
       // Create .ssh directory if it doesn't exist
       if (!fs.existsSync(sshPath)) {
-        fs.mkdirSync(sshPath, {mode: 0o700})
+        fs.mkdirSync(sshPath, {recursive: true})
+        // Set permissions on Unix-like systems only
+        if (process.platform !== 'win32') {
+          try {
+            fs.chmodSync(sshPath, 0o700)
+          } catch (error) {
+            // Ignore permission errors on systems that don't support it
+          }
+        }
       }
 
-      const email = execSync('git config --get user.email').toString().trim() || 'user@example.com'
-      execSync(`ssh-keygen -t ed25519 -C "${email}" -f "${path.join(sshPath, 'id_ed25519')}" -N ""`, {stdio: 'inherit'})
+      let email = 'user@example.com'
+      try {
+        email = execSync('git config --get user.email', {encoding: 'utf8'}).toString().trim() || 'user@example.com'
+      } catch (error) {
+        // Git not configured or not available, use default email
+        this.log(chalk.yellow('⚠️  Could not get git user email, using default: user@example.com'))
+      }
+      
+      // Construct ssh-keygen command with proper path quoting for cross-platform compatibility
+      const keyPath = path.join(sshPath, 'id_ed25519')
+      const sshKeygenCmd = `ssh-keygen -t ed25519 -C "${email}" -f "${keyPath}" -N ""`
+      
+      execSync(sshKeygenCmd, {stdio: 'inherit'})
 
       return true
     } catch (error) {
+      this.log(chalk.redBright(`❌ Failed to generate SSH key: ${error instanceof Error ? error.message : 'Unknown error'}`))
       return false
     }
   }
 
   private openBrowser(url: string): void {
     let command
+    let args: string[] = []
+    
     switch (process.platform) {
       case 'darwin':
         command = 'open'
+        args = [url]
         break
       case 'win32':
-        command = 'start'
+        command = 'cmd'
+        args = ['/c', 'start', '""', url]
         break
       default:
         command = 'xdg-open'
+        args = [url]
         break
     }
 
-    const child = spawn(command, [url], {
-      detached: true,
-      stdio: 'ignore',
-    })
-    child.unref()
+    try {
+      const child = spawn(command, args, {
+        detached: true,
+        stdio: 'ignore',
+      })
+      child.unref()
+    } catch (error) {
+      this.log(chalk.yellow(`Could not open browser automatically. Please visit: ${url}`))
+    }
+  }
+
+  private getSSHKeyInfo(keyContent: string): {type: string, fingerprint: string, comment: string} {
+    const parts = keyContent.split(' ')
+    const type = parts[0] || 'unknown'
+    const comment = parts[2] || 'no comment'
+    
+    // Generate a short fingerprint for display purposes
+    let fingerprint = 'unknown'
+    try {
+      const keyData = parts[1] || ''
+      if (keyData.length > 8) {
+        // Show first 8 and last 8 characters of the key data
+        fingerprint = `${keyData.substring(0, 8)}...${keyData.substring(keyData.length - 8)}`
+      }
+    } catch (error) {
+      fingerprint = 'unknown'
+    }
+    
+    return { type, fingerprint, comment }
+  }
+
+  private checkCommandAvailability(command: string): boolean {
+    try {
+      execSync(`${command} --version`, {stdio: 'ignore'})
+      return true
+    } catch (error) {
+      return false
+    }
   }
 
   async run(): Promise<void> {
@@ -229,11 +321,44 @@ export class Setup extends Command {
 
     // Display the public key if it exists
     if (hasKey) {
-      const publicKey = this.getPublicSSHKey()
-      if (publicKey) {
-        this.log(chalk.yellowBright('\nYour public SSH key:'))
+      const allSSHKeys = this.getAllSSHKeys()
+      
+      if (allSSHKeys.length === 1) {
+        // If only one key, display it directly
+        const publicKey = allSSHKeys[0].content
+        this.log(chalk.yellowBright(`\nYour public SSH key (${allSSHKeys[0].name}):`))
         this.log(chalk.bgBlackBright.white(publicKey))
         this.log(chalk.yellowBright('\nCopy the above key to add to Acquia services.'))
+      } else if (allSSHKeys.length > 1) {
+        // If multiple keys, let user choose
+        this.log(chalk.yellowBright(`\nFound ${allSSHKeys.length} SSH keys:`))
+        
+        // Display all available keys with brief info
+        allSSHKeys.forEach((key, index) => {
+          const { type, fingerprint, comment } = this.getSSHKeyInfo(key.content)
+          this.log(chalk.gray(`  ${index + 1}. ${key.name} (${type}) - ${comment} (Fingerprint: ${fingerprint})`))
+        })
+        
+        const {selectedKeyIndex} = await inquirer.prompt({
+          type: 'list',
+          name: 'selectedKeyIndex',
+          message: 'Which SSH key would you like to display and use?',
+          choices: allSSHKeys.map((key, index) => {
+            const { type, fingerprint, comment } = this.getSSHKeyInfo(key.content)
+            return {
+              name: `${key.name} (${type}) - ${comment} (Fingerprint: ${fingerprint})`,
+              value: index
+            }
+          })
+        })
+        
+        const selectedKey = allSSHKeys[selectedKeyIndex]
+        this.log(chalk.yellowBright(`\nSelected SSH key (${selectedKey.name}):`))
+        this.log(chalk.bgBlackBright.white(selectedKey.content))
+        this.log(chalk.yellowBright('\nCopy the above key to add to Acquia services.'))
+      }
+
+      if (allSSHKeys.length > 0) {
 
         // Prompt to open SSH key management pages in browser
         const {openAcquiaCodeStudio} = await inquirer.prompt({
@@ -276,6 +401,13 @@ export class Setup extends Command {
     
     let repoPath = ''
     if (cloneRepo) {
+      // Check if git is available
+      if (!this.checkCommandAvailability('git')) {
+        this.log(chalk.redBright('❌ Git command not found. Please install Git and ensure it\'s in your PATH.'))
+        this.log(chalk.yellow('You can download Git from: https://git-scm.com/downloads'))
+        return
+      }
+
       // Get current directory
       const currentDir = process.cwd()
       
@@ -290,9 +422,10 @@ export class Setup extends Command {
       
       // Clone the repository
       this.log(chalk.cyan(`Cloning repository to ${cloneDir}...`))
+      const repoDestination = path.join(cloneDir, CONSTANTS.REPO_NAME)
       const cloneResult = spawnSync(
         'git', 
-        ['clone', CONSTANTS.GIT_REPOSITORY_URL, cloneDir + '/' + CONSTANTS.REPO_NAME], 
+        ['clone', CONSTANTS.GIT_REPOSITORY_URL, repoDestination], 
         { stdio: 'inherit' }
       )
       
@@ -301,7 +434,7 @@ export class Setup extends Command {
         this.log(chalk.yellow('Make sure your SSH key is properly set up with Acquia Code Studio.'))
       } else {
         this.log(chalk.greenBright('✅ Repository cloned successfully!'))
-        repoPath = cloneDir
+        repoPath = path.join(cloneDir, CONSTANTS.REPO_NAME)
         
         // Change to the repository directory for further commands
         process.chdir(repoPath)
@@ -309,66 +442,84 @@ export class Setup extends Command {
         // Now run the ddev and acli commands in the context of the cloned repository
         this.log(chalk.bgCyanBright.bold.white('\n🛠️ Setting up development environment 🛠️'))
         
-        const {runDdevAuth} = await inquirer.prompt({
-          default: true,
-          message: 'Would you like to run "ddev auth ssh" now?',
-          name: 'runDdevAuth',
-          type: 'confirm',
-        })
+        // Check for ddev availability
+        const hasDdev = this.checkCommandAvailability('ddev')
+        if (!hasDdev) {
+          this.log(chalk.yellow('⚠️  DDEV not found. Please install DDEV from: https://ddev.readthedocs.io/en/stable/'))
+        }
         
-        if (runDdevAuth) {
-          this.log(chalk.cyanBright('Running: ddev auth ssh'))
-          const result = spawnSync('ddev', ['auth', 'ssh'], {stdio: 'inherit'})
-          if (result.error) {
-            this.log(chalk.redBright(`Error running ddev auth ssh: ${result.error.message}`))
+        // Check for acli availability  
+        const hasAcli = this.checkCommandAvailability('acli')
+        if (!hasAcli) {
+          this.log(chalk.yellow('⚠️  Acquia CLI not found. Please install Acquia CLI from: https://github.com/acquia/cli'))
+        }
+        
+        if (hasDdev) {
+          const {runDdevAuth} = await inquirer.prompt({
+            default: true,
+            message: 'Would you like to run "ddev auth ssh" now?',
+            name: 'runDdevAuth',
+            type: 'confirm',
+          })
+          
+          if (runDdevAuth) {
+            this.log(chalk.cyanBright('Running: ddev auth ssh'))
+            const result = spawnSync('ddev', ['auth', 'ssh'], {stdio: 'inherit'})
+            if (result.error) {
+              this.log(chalk.redBright(`Error running ddev auth ssh: ${result.error.message}`))
+            }
           }
         }
         
-        const {runAcliLogin} = await inquirer.prompt({
-          default: true,
-          message: 'Would you like to run "acli auth:login" now?',
-          name: 'runAcliLogin',
-          type: 'confirm',
-        })
-        
-        if (runAcliLogin) {
-          this.log(chalk.cyan('Running: acli auth:login'))
-          const result = spawnSync('acli', ['auth:login'], {stdio: 'inherit'})
-          if (result.error) {
-            this.log(chalk.redBright(`Error running acli auth:login: ${result.error.message}`))
+        if (hasAcli) {
+          const {runAcliLogin} = await inquirer.prompt({
+            default: true,
+            message: 'Would you like to run "acli auth:login" now?',
+            name: 'runAcliLogin',
+            type: 'confirm',
+          })
+          
+          if (runAcliLogin) {
+            this.log(chalk.cyan('Running: acli auth:login'))
+            const result = spawnSync('acli', ['auth:login'], {stdio: 'inherit'})
+            if (result.error) {
+              this.log(chalk.redBright(`Error running acli auth:login: ${result.error.message}`))
+            }
           }
-        }
-        
-        const {runAcliAcsfLogin} = await inquirer.prompt({
-          default: true,
-          message: 'Would you like to run "acli auth:acsf-login" now?',
-          name: 'runAcliAcsfLogin',
-          type: 'confirm',
-        })
-        
-        if (runAcliAcsfLogin) {
-          this.log(chalk.cyan('Running: acli auth:acsf-login'))
-          const result = spawnSync('acli', ['auth:acsf-login'], {stdio: 'inherit'})
-          if (result.error) {
-            this.log(chalk.redBright(`Error running acli auth:acsf-login: ${result.error.message}`))
+          
+          const {runAcliAcsfLogin} = await inquirer.prompt({
+            default: true,
+            message: 'Would you like to run "acli auth:acsf-login" now?',
+            name: 'runAcliAcsfLogin',
+            type: 'confirm',
+          })
+          
+          if (runAcliAcsfLogin) {
+            this.log(chalk.cyan('Running: acli auth:acsf-login'))
+            const result = spawnSync('acli', ['auth:acsf-login'], {stdio: 'inherit'})
+            if (result.error) {
+              this.log(chalk.redBright(`Error running acli auth:acsf-login: ${result.error.message}`))
+            }
           }
         }
         
         // Ask about additional setup steps that might be needed for the repository
-        const {runDdevStart} = await inquirer.prompt({
-          default: true,
-          message: 'Would you like to run "ddev start" to initialize the local development environment?',
-          name: 'runDdevStart',
-          type: 'confirm',
-        })
-        
-        if (runDdevStart) {
-          this.log(chalk.cyan('Running: ddev start'))
-          const result = spawnSync('ddev', ['start'], {stdio: 'inherit'})
-          if (result.error) {
-            this.log(chalk.redBright(`Error running ddev start: ${result.error.message}`))
-          } else {
-            this.log(chalk.greenBright('✅ Local development environment started!'))
+        if (hasDdev) {
+          const {runDdevStart} = await inquirer.prompt({
+            default: true,
+            message: 'Would you like to run "ddev start" to initialize the local development environment?',
+            name: 'runDdevStart',
+            type: 'confirm',
+          })
+          
+          if (runDdevStart) {
+            this.log(chalk.cyan('Running: ddev start'))
+            const result = spawnSync('ddev', ['start'], {stdio: 'inherit'})
+            if (result.error) {
+              this.log(chalk.redBright(`Error running ddev start: ${result.error.message}`))
+            } else {
+              this.log(chalk.greenBright('✅ Local development environment started!'))
+            }
           }
         }
       }
