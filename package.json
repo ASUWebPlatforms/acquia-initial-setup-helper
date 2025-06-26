@@ -14,7 +14,6 @@
     "chalk": "^5.4.1",
     "inquirer": "^12.6.1",
     "js-yaml": "^4.1.0",
-    "shx": "^0.3.4",
     "terminal-image": "^3.1.1"
   },
   "devDependencies": {
@@ -31,6 +30,7 @@
     "eslint-config-prettier": "^10",
     "mocha": "^10",
     "oclif": "^4",
+    "shx": "^0.3.4",
     "ts-node": "^10",
     "typescript": "^5"
   },
@@ -67,12 +67,12 @@
   },
   "repository": "https://github.com/davidornelas11/acquia-setup-helper/acquia-setup-helper",
   "scripts": {
-    "build": "node \"${npm_execpath}\" install shx typescript && node \"${npm_execpath}\" exec -- shx rm -rf dist tsconfig.tsbuildinfo && node \"${npm_execpath}\" exec -- tsc -b",
+    "build": "npx shx rm -rf dist tsconfig.tsbuildinfo && npx tsc -b",
     "build:force": "shx rm -rf dist tsconfig.tsbuildinfo && tsc -b --force",
     "build:clean": "shx rm -rf dist tsconfig.tsbuildinfo node_modules/.cache && tsc -b",
     "dev": "npm run build && ./bin/dev.js",
     "lint": "eslint",
-    "prepare": "npm run build",
+    "prepare": "npm install && npm run build",
     "postpack": "shx rm -f oclif.manifest.json",
     "posttest": "npm run lint",
     "prepack": "oclif manifest && oclif readme",
