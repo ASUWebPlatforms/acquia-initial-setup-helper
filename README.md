@@ -40,6 +40,7 @@ To successfully complete the setup, you'll need:
 - **Acquia Cloud API Secret**: From Acquia Cloud Platform
 
 <!-- toc -->
+* [Acquia Setup Helper (ASU)](#acquia-setup-helper-asu)
 * [Usage](#usage)
 * [Commands](#commands)
 <!-- tocstop -->
@@ -59,56 +60,18 @@ USAGE
 <!-- usagestop -->
 # Commands
 <!-- commands -->
-- [Acquia Setup Helper (ASU)](#acquia-setup-helper-asu)
-  - [Overview](#overview)
-  - [Prerequisites](#prerequisites)
-  - [Requirements](#requirements)
-- [Usage](#usage)
-- [Commands](#commands)
-  - [`asu-acquia-dev-setup setup`](#asu-acquia-dev-setup-setup)
-  - [`asu-acquia-dev-setup help [COMMAND]`](#asu-acquia-dev-setup-help-command)
-  - [`asu-acquia-dev-setup plugins`](#asu-acquia-dev-setup-plugins)
-  - [`asu-acquia-dev-setup plugins add PLUGIN`](#asu-acquia-dev-setup-plugins-add-plugin)
-  - [`asu-acquia-dev-setup plugins:inspect PLUGIN...`](#asu-acquia-dev-setup-pluginsinspect-plugin)
-  - [`asu-acquia-dev-setup plugins install PLUGIN`](#asu-acquia-dev-setup-plugins-install-plugin)
-  - [`asu-acquia-dev-setup plugins link PATH`](#asu-acquia-dev-setup-plugins-link-path)
-  - [`asu-acquia-dev-setup plugins remove [PLUGIN]`](#asu-acquia-dev-setup-plugins-remove-plugin)
-  - [`asu-acquia-dev-setup plugins reset`](#asu-acquia-dev-setup-plugins-reset)
-  - [`asu-acquia-dev-setup plugins uninstall [PLUGIN]`](#asu-acquia-dev-setup-plugins-uninstall-plugin)
-  - [`asu-acquia-dev-setup plugins unlink [PLUGIN]`](#asu-acquia-dev-setup-plugins-unlink-plugin)
-  - [`asu-acquia-dev-setup plugins update`](#asu-acquia-dev-setup-plugins-update)
-  - [Troubleshooting](#troubleshooting)
-    - [SSH Key Issues](#ssh-key-issues)
-    - [DDEV Configuration](#ddev-configuration)
-    - [Repository Cloning](#repository-cloning)
-    - [Acquia CLI Authentication](#acquia-cli-authentication)
-  - [Contributing](#contributing)
-  - [License](#license)
-
-## `asu-acquia-dev-setup setup`
-
-Guide the user through Acquia CLI and Code Studio setup.
-
-```
-USAGE
-  $ asu-acquia-dev-setup setup
-
-DESCRIPTION
-  Guide the user through Acquia CLI and Code Studio setup.
-  
-  This interactive command will:
-  1. Collect necessary Acquia credentials and save them to DDEV configuration
-  2. Check for existing SSH keys or help generate new ones
-  3. Assist with adding SSH keys to Acquia services
-  4. Clone the Acquia Site Factory repository
-  5. Set up a local development environment with DDEV
-  6. Configure authentication for Acquia CLI and Site Factory
-
-EXAMPLES
-  $ asu-acquia-dev-setup setup
-```
-
-_See code: [src/commands/setup/index.ts](https://github.com/davidornelas11/acquia-setup-helper/acquia-setup-helper/blob/v0.0.0/src/commands/setup/index.ts)_
+* [`asu-acquia-dev-setup help [COMMAND]`](#asu-acquia-dev-setup-help-command)
+* [`asu-acquia-dev-setup plugins`](#asu-acquia-dev-setup-plugins)
+* [`asu-acquia-dev-setup plugins add PLUGIN`](#asu-acquia-dev-setup-plugins-add-plugin)
+* [`asu-acquia-dev-setup plugins:inspect PLUGIN...`](#asu-acquia-dev-setup-pluginsinspect-plugin)
+* [`asu-acquia-dev-setup plugins install PLUGIN`](#asu-acquia-dev-setup-plugins-install-plugin)
+* [`asu-acquia-dev-setup plugins link PATH`](#asu-acquia-dev-setup-plugins-link-path)
+* [`asu-acquia-dev-setup plugins remove [PLUGIN]`](#asu-acquia-dev-setup-plugins-remove-plugin)
+* [`asu-acquia-dev-setup plugins reset`](#asu-acquia-dev-setup-plugins-reset)
+* [`asu-acquia-dev-setup plugins uninstall [PLUGIN]`](#asu-acquia-dev-setup-plugins-uninstall-plugin)
+* [`asu-acquia-dev-setup plugins unlink [PLUGIN]`](#asu-acquia-dev-setup-plugins-unlink-plugin)
+* [`asu-acquia-dev-setup plugins update`](#asu-acquia-dev-setup-plugins-update)
+* [`asu-acquia-dev-setup setup`](#asu-acquia-dev-setup-setup)
 
 ## `asu-acquia-dev-setup help [COMMAND]`
 
@@ -419,6 +382,20 @@ DESCRIPTION
 ```
 
 _See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.38/src/commands/plugins/update.ts)_
+
+## `asu-acquia-dev-setup setup`
+
+Guide the user through Acquia CLI and Code Studio setup.
+
+```
+USAGE
+  $ asu-acquia-dev-setup setup
+
+DESCRIPTION
+  Guide the user through Acquia CLI and Code Studio setup.
+```
+
+_See code: [src/commands/setup/index.ts](https://github.com/davidornelas11/acquia-setup-helper/acquia-setup-helper/blob/v0.0.0/src/commands/setup/index.ts)_
 <!-- commandsstop -->
 
 ## Troubleshooting

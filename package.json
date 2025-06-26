@@ -68,7 +68,10 @@
   },
   "repository": "https://github.com/davidornelas11/acquia-setup-helper/acquia-setup-helper",
   "scripts": {
-    "build": "shx rm -rf dist && tsc -b",
+    "build": "shx rm -rf dist tsconfig.tsbuildinfo && tsc -b",
+    "build:force": "shx rm -rf dist tsconfig.tsbuildinfo && tsc -b --force",
+    "build:clean": "shx rm -rf dist tsconfig.tsbuildinfo node_modules/.cache && tsc -b",
+    "dev": "npm run build && ./bin/dev.js",
     "lint": "eslint",
     "postpack": "shx rm -f oclif.manifest.json",
     "posttest": "npm run lint",
