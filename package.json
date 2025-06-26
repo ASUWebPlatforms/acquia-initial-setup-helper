@@ -67,7 +67,7 @@
   },
   "repository": "https://github.com/davidornelas11/acquia-setup-helper/acquia-setup-helper",
   "scripts": {
-    "build": "shx rm -rf dist tsconfig.tsbuildinfo && tsc -b",
+    "build": "npx shx rm -rf dist tsconfig.tsbuildinfo && npx tsc -b",
     "build:force": "shx rm -rf dist tsconfig.tsbuildinfo && tsc -b --force",
     "build:clean": "shx rm -rf dist tsconfig.tsbuildinfo node_modules/.cache && tsc -b",
     "dev": "npm run build && ./bin/dev.js",
