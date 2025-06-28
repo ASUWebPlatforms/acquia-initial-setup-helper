@@ -1,7 +1,7 @@
 {
   "name": "acquia-setup-helper-tester",
   "description": "Helper cli tool to set up acquia cli with proper permissions",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "david ornelas",
   "bin": {
     "asu-acquia-dev-setup": "./bin/run.js"

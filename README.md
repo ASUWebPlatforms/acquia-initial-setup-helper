@@ -51,7 +51,7 @@ $ npm install -g acquia-setup-helper-tester
 $ asu-acquia-dev-setup COMMAND
 running command...
 $ asu-acquia-dev-setup (--version)
-acquia-setup-helper-tester/0.0.0 darwin-arm64 node-v20.15.1
+acquia-setup-helper-tester/0.0.2 darwin-arm64 node-v20.15.1
 $ asu-acquia-dev-setup --help [COMMAND]
 USAGE
   $ asu-acquia-dev-setup COMMAND
@@ -95,7 +95,7 @@ DESCRIPTION
   Guide the user through Acquia CLI and Code Studio setup.
 ```
 
-_See code: [src/commands/setup/index.ts](https://github.com/davidornelas11/acquia-setup-helper/acquia-setup-helper/blob/v0.0.0/src/commands/setup/index.ts)_
+_See code: [src/commands/setup/index.ts](https://github.com/asuwebplatforms/acquia-initial-setup-helper/blob/v0.0.2/src/commands/setup/index.ts)_
 <!-- commandsstop -->
 
 ## Troubleshooting
