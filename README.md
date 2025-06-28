@@ -91,6 +91,9 @@ Guide the user through Acquia CLI and Code Studio setup.
 USAGE
   $ asu-acquia-dev-setup setup
 
+  FLAGS
+  -d , --debug  Does not write to the global config file, useful for debugging.
+
 DESCRIPTION
   Guide the user through Acquia CLI and Code Studio setup.
 ```
