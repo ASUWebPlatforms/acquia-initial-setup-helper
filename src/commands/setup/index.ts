@@ -379,21 +379,21 @@ export default class Setup extends Command {
         this.log(chalk.yellowBright(`\nSelected SSH key (${selectedKey.name}):`))
         this.log(chalk.bgBlackBright.white(selectedKey.content))
         this.log(chalk.yellowBright('\nCopy the above key to add to Acquia services.'))
-      }
 
-      // Add ssh key to current agent
-      this.log(chalk.cyan('Adding SSH key to current SSH agent...'))
-      // Remove ".pub" extension to get the private key path
-      const privateKeyPath = allSSHKeys[0].path.replace(/\.pub$/, '')
-      const addKeyResult = spawnSync('ssh-add', [privateKeyPath], {stdio: 'inherit'})
-      if (addKeyResult.error || addKeyResult.status !== 0) {
-        this.log(
-          chalk.redBright(`❌ Error adding SSH key: ${addKeyResult.error?.message || 'Exit code: ' + addKeyResult.status}`),
-        )
-        this.log(chalk.yellow('Make sure your SSH agent is running and try again.'))
-        Errors.exit(1)
-      } else {
-        this.log(chalk.greenBright('✅ SSH key added to current SSH agent successfully!'))
+        // Add ssh key to current agent
+        this.log(chalk.cyan('Adding SSH key to current SSH agent...'))
+        // Remove ".pub" extension to get the private key path
+        const privateKeyPath = selectedKey.path.replace(/\.pub$/, '')
+        const addKeyResult = spawnSync('ssh-add', [privateKeyPath], {stdio: 'inherit'})
+        if (addKeyResult.error || addKeyResult.status !== 0) {
+          this.log(
+            chalk.redBright(`❌ Error adding SSH key: ${addKeyResult.error?.message || 'Exit code: ' + addKeyResult.status}`),
+          )
+          this.log(chalk.yellow('Make sure your SSH agent is running and try again.'))
+          Errors.exit(1)
+        } else {
+          this.log(chalk.greenBright('✅ SSH key added to current SSH agent successfully!'))
+        }
       }
 
       if (allSSHKeys.length > 0) {
